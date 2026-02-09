@@ -90,39 +90,49 @@ PUBLISHER 211910<br>
 </div>
 
 <script>
-const box=document.getElementById("box");
-let decodedLink="";
+const box = document.getElementById("box");
+let decodedLink = "";
 
-function encode(){
- let t=box.value.toUpperCase(),r="";
- for(let c of t){
-  if(c>="A"&&c<="Z") r+=(c.charCodeAt(0)-64)+"|";
-  else r+=c;
- }
- box.value=r;
- document.getElementById("linkBox").style.display="none";
+function encode() {
+  let t = box.value.toUpperCase();
+  let r = "";
+
+  for (let c of t) {
+    if (c === " ") r += "_|";
+    else if (c >= "A" && c <= "Z") r += (c.charCodeAt(0) - 64) + "|";
+    else r += c;
+  }
+
+  box.value = r;
+  document.getElementById("linkBox").style.display = "none";
 }
 
-function decode(){
- let p=box.value.split("|"),r="";
- for(let x of p){
-  if(!isNaN(x)&&x>=1&&x<=26) r+=String.fromCharCode(Number(x)+64);
-  else r+=x;
- }
- box.value=r;
- if(r.includes("HTTP")){
-  decodedLink=r.match(/https?:\/\/\S+/)[0];
-  document.getElementById("linkBox").style.display="block";
- }
+function decode() {
+  let parts = box.value.split("|");
+  let r = "";
+
+  for (let x of parts) {
+    if (x === "_") r += " ";
+    else if (!isNaN(x) && x >= 1 && x <= 26)
+      r += String.fromCharCode(Number(x) + 64);
+    else r += x;
+  }
+
+  box.value = r;
+
+  if (r.includes("HTTP")) {
+    decodedLink = r.match(/https?:\/\/\S+/)[0];
+    document.getElementById("linkBox").style.display = "block";
+  }
 }
 
-function copyText(){ navigator.clipboard.writeText(box.value); }
-function pasteText(){ navigator.clipboard.readText().then(t=>box.value=t); }
-function clearText(){ box.value=""; document.getElementById("linkBox").style.display="none"; }
-function openLink(){ window.open(decodedLink,"_blank"); }
-function scrollUp(){ box.scrollTop-=20; }
-function scrollDown(){ box.scrollTop+=20; }
+function copyText() { navigator.clipboard.writeText(box.value); }
+function pasteText() { navigator.clipboard.readText().then(t => box.value = t); }
+function clearText() {
+  box.value = "";
+  document.getElementById("linkBox").style.display = "none";
+}
+function openLink() { window.open(decodedLink, "_blank"); }
+function scrollUp() { box.scrollTop -= 20; }
+function scrollDown() { box.scrollTop += 20; }
 </script>
-
-</body>
-</html>
