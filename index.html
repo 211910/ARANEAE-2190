@@ -5,7 +5,6 @@
 <title>ARANEAE 2190</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-/* ===== DARK HACKER THEME ===== */
 body {
   background: #050505;
   color: #00ffcc;
@@ -60,12 +59,6 @@ button:hover {
 .face {
   font-size: 20px;
   margin: 10px;
-  animation: blink 1.5s infinite;
-}
-
-@keyframes blink {
-  0%,100% { opacity: 1; }
-  50% { opacity: 0.4; }
 }
 
 #linkBox {
@@ -82,60 +75,59 @@ PUBLISHER 211910<br>
 17‑10 | 21 | 12 | 25 B00I
 </div>
 
-<!-- Animated ASCII face -->
 <div class="face" id="face">..!?!£(£;3;3(£..!?!</div>
 
 <textarea id="box" placeholder="ENTER MESSAGE OR LINK"></textarea>
 <br>
 
-<!-- Encode / Decode buttons -->
 <button onclick="encode()">ENCODE</button>
 <button onclick="decode()">DECODE</button>
 <br>
-
-<!-- Copy / Paste / Delete -->
 <button onclick="copyText()">COPY</button>
 <button onclick="pasteText()">PASTE</button>
 <button onclick="clearText()">DELETE</button>
 <br>
-
-<!-- Scroll -->
 <button onclick="scrollUp()">▲</button>
 <button onclick="scrollDown()">▼</button>
 
-<!-- Link box -->
 <div id="linkBox">
 <br>
 <button onclick="openLink()">OPEN LINK</button>
 </div>
 
 <script>
-// ===== FACE ANIMATION =====
+// ===== FACE ANIMATION BASED ON TYPING =====
 const face = document.getElementById("face");
-const frames = ["..!?!£(£;3;3(£..!?!", "..!?£(£;0;0(£..!?!", "..!!£(£;^;^£..!?!"];
-let f = 0;
+const typingFrames = ["..!?!£(£;0;0(£..!?!","..!?!£(£;^;^£..!?!","..!?!£(£;*;*£..!?!","..!?!£(£;@;@£..!?!"];
+const idleFrames = ["..!?!£(£;3;3(£..!?!","..!?!£(£;0;0(£..!?!"];
+let idleIndex = 0;
+let typingTimer;
+const TYPING_DELAY = 1000;
+
+document.getElementById("box").addEventListener("input", () => {
+  face.textContent = typingFrames[Math.floor(Math.random()*typingFrames.length)];
+  clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    idleIndex = (idleIndex + 1) % idleFrames.length;
+    face.textContent = idleFrames[idleIndex];
+  }, TYPING_DELAY);
+});
+
 setInterval(() => {
-  face.textContent = frames[f];
-  f = (f + 1) % frames.length;
-}, 600);
+  if (!document.activeElement.isEqualNode(box)) {
+    idleIndex = (idleIndex + 1) % idleFrames.length;
+    face.textContent = idleFrames[idleIndex];
+  }
+}, 1200);
 
 // ===== ENCODE / DECODE =====
 const box = document.getElementById("box");
 let decodedLink = "";
 
 function encode() {
-  let t = box.value.trim();
-
-  // If input is URL, skip encoding
-  if (/^https?:\/\//i.test(t)) {
-    box.value = t;
-    document.getElementById("linkBox").style.display = "block";
-    decodedLink = t;
-    return;
-  }
-
+  let t = box.value.trim().toUpperCase();
   let r = "";
-  for (let c of t.toUpperCase()) {
+  for (let c of t) {
     if (c === " ") r += "_|";
     else if (c >= "A" && c <= "Z") r += (c.charCodeAt(0)-64) + "|";
     else r += c;
@@ -145,31 +137,19 @@ function encode() {
 }
 
 function decode() {
-function decode() {
   let input = box.value.trim();
-
-  // If input is URL, skip decoding
-  if (/^https?:\/\//i.test(input)) {
-    decodedLink = input;
-    document.getElementById("linkBox").style.display = "block";
-    return;
-  }
-
   let parts = input.split("|");
   let result = "";
-
   for (let part of parts) {
     if (part === "_") result += " ";
     else if (!isNaN(part) && part !== "") {
       let num = Number(part);
-      if (num >= 1 && num <= 26) result += String.fromCharCode(num+64);
+      if (num >=1 && num <=26) result += String.fromCharCode(num+64);
       else result += part;
     } else result += part;
   }
-
   box.value = result;
 
-  // Detect URL in decoded text
   const urlMatch = result.match(/https?:\/\/\S+/);
   if (urlMatch) {
     decodedLink = urlMatch[0];
