@@ -5,134 +5,191 @@
 <title>ARANEAE 2190</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{
-  background:#050505;
-  color:#00ffcc;
-  font-family:monospace;
-  text-align:center;
-  margin:0;
-  padding:10px;
+/* ===== DARK HACKER THEME ===== */
+body {
+  background: #050505;
+  color: #00ffcc;
+  font-family: monospace;
+  text-align: center;
+  margin: 0;
+  padding: 10px;
 }
-h1{
-  font-size:28px;
-  letter-spacing:3px;
-  animation:glow 2s infinite alternate;
+
+h1 {
+  font-size: 28px;
+  letter-spacing: 3px;
+  animation: glow 2s infinite alternate;
 }
-@keyframes glow{
-  from{ text-shadow:0 0 5px #00ffcc; }
-  to{ text-shadow:0 0 20px #00ffcc; }
+
+@keyframes glow {
+  from { text-shadow: 0 0 5px #00ffcc; }
+  to { text-shadow: 0 0 25px #00ffcc; }
 }
-.subtitle{
-  color:#777;
-  font-size:12px;
+
+.subtitle {
+  color: #777;
+  font-size: 12px;
+  margin-bottom: 10px;
 }
-textarea{
-  width:90%;
-  height:160px;
-  background:#000;
-  color:#00ffcc;
-  border:1px solid #00ffcc;
-  padding:10px;
-  font-size:16px;
+
+textarea {
+  width: 90%;
+  height: 160px;
+  background: #000;
+  color: #00ffcc;
+  border: 1px solid #00ffcc;
+  padding: 10px;
+  font-size: 16px;
+  resize: none;
 }
-button{
-  background:#000;
-  color:#00ffcc;
-  border:1px solid #00ffcc;
-  padding:8px 12px;
-  margin:5px;
+
+button {
+  background: #000;
+  color: #00ffcc;
+  border: 1px solid #00ffcc;
+  padding: 8px 12px;
+  margin: 5px;
+  cursor: pointer;
 }
-button:hover{
-  background:#00ffcc;
-  color:#000;
+
+button:hover {
+  background: #00ffcc;
+  color: #000;
 }
-.face{
-  font-size:18px;
-  margin:10px;
-  animation:blink 1.5s infinite;
+
+.face {
+  font-size: 20px;
+  margin: 10px;
+  animation: blink 1.5s infinite;
 }
-@keyframes blink{
-  0%,100%{opacity:1;}
-  50%{opacity:0.4;}
+
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
-#linkBox{
-  display:none;
+
+#linkBox {
+  display: none;
+  margin-top: 10px;
 }
 </style>
 </head>
-
 <body>
 
 <h1>ARANEAE 2190</h1>
 <div class="subtitle">
 PUBLISHER 211910<br>
-17‑10|21|12|25 B00I
+17‑10 | 21 | 12 | 25 B00I
 </div>
 
-<div class="face">..!?!£(£;3;3(£..!?!</div>
+<!-- Animated ASCII face -->
+<div class="face" id="face">..!?!£(£;3;3(£..!?!</div>
 
-<textarea id="box" placeholder="ENTER TEXT OR LINK"></textarea>
-
+<textarea id="box" placeholder="ENTER MESSAGE OR LINK"></textarea>
 <br>
+
+<!-- Encode / Decode buttons -->
 <button onclick="encode()">ENCODE</button>
 <button onclick="decode()">DECODE</button>
 <br>
+
+<!-- Copy / Paste / Delete -->
 <button onclick="copyText()">COPY</button>
 <button onclick="pasteText()">PASTE</button>
 <button onclick="clearText()">DELETE</button>
 <br>
+
+<!-- Scroll -->
 <button onclick="scrollUp()">▲</button>
 <button onclick="scrollDown()">▼</button>
 
+<!-- Link box -->
 <div id="linkBox">
 <br>
 <button onclick="openLink()">OPEN LINK</button>
 </div>
 
 <script>
+// ===== FACE ANIMATION =====
+const face = document.getElementById("face");
+const frames = ["..!?!£(£;3;3(£..!?!", "..!?£(£;0;0(£..!?!", "..!!£(£;^;^£..!?!"];
+let f = 0;
+setInterval(() => {
+  face.textContent = frames[f];
+  f = (f + 1) % frames.length;
+}, 600);
+
+// ===== ENCODE / DECODE =====
 const box = document.getElementById("box");
 let decodedLink = "";
 
 function encode() {
-  let t = box.value.toUpperCase();
-  let r = "";
+  let t = box.value.trim();
 
-  for (let c of t) {
-    if (c === " ") r += "_|";
-    else if (c >= "A" && c <= "Z") r += (c.charCodeAt(0) - 64) + "|";
-    else r += c;
+  // If input is URL, skip encoding
+  if (/^https?:\/\//i.test(t)) {
+    box.value = t;
+    document.getElementById("linkBox").style.display = "block";
+    decodedLink = t;
+    return;
   }
 
+  let r = "";
+  for (let c of t.toUpperCase()) {
+    if (c === " ") r += "_|";
+    else if (c >= "A" && c <= "Z") r += (c.charCodeAt(0)-64) + "|";
+    else r += c;
+  }
   box.value = r;
   document.getElementById("linkBox").style.display = "none";
 }
 
 function decode() {
-  let parts = box.value.split("|");
-  let r = "";
+  let input = box.value.trim();
 
-  for (let x of parts) {
-    if (x === "_") r += " ";
-    else if (!isNaN(x) && x >= 1 && x <= 26)
-      r += String.fromCharCode(Number(x) + 64);
-    else r += x;
+  // If input is URL, skip decoding
+  if (/^https?:\/\//i.test(input)) {
+    decodedLink = input;
+    document.getElementById("linkBox").style.display = "block";
+    return;
   }
 
-  box.value = r;
+  let parts = input.split("|");
+  let result = "";
 
-  if (r.includes("HTTP")) {
-    decodedLink = r.match(/https?:\/\/\S+/)[0];
+  for (let part of parts) {
+    if (part === "_") result += " ";
+    else if (!isNaN(part) && part !== "") {
+      let num = Number(part);
+      if (num >= 1 && num <= 26) result += String.fromCharCode(num+64);
+      else result += part;
+    } else result += part;
+  }
+
+  box.value = result;
+
+  // Detect URL in decoded text
+  const urlMatch = result.match(/https?:\/\/\S+/);
+  if (urlMatch) {
+    decodedLink = urlMatch[0];
     document.getElementById("linkBox").style.display = "block";
+  } else {
+    document.getElementById("linkBox").style.display = "none";
   }
 }
 
+// ===== COPY / PASTE / DELETE =====
 function copyText() { navigator.clipboard.writeText(box.value); }
 function pasteText() { navigator.clipboard.readText().then(t => box.value = t); }
-function clearText() {
-  box.value = "";
-  document.getElementById("linkBox").style.display = "none";
-}
-function openLink() { window.open(decodedLink, "_blank"); }
+function clearText() { box.value=""; document.getElementById("linkBox").style.display="none"; }
+
+// ===== SCROLL =====
 function scrollUp() { box.scrollTop -= 20; }
 function scrollDown() { box.scrollTop += 20; }
+
+// ===== OPEN LINK =====
+function openLink() { window.open(decodedLink, "_blank"); }
 </script>
+
+</body>
+</html>
