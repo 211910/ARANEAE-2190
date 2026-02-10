@@ -6,19 +6,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body { background:#050505; color:#00ffcc; font-family:monospace; text-align:center; margin:0; padding:10px;}
-h1 { letter-spacing:3px; text-shadow:0 0 15px #00ffcc;}
+h1 { letter-spacing:3px; text-shadow:0 0 15px #00ffcc; }
 .subtitle { font-size:12px; color:#777; margin-bottom:10px; }
 textarea { width:90%; height:160px; background:#000; color:#00ffcc; border:1px solid #00ffcc; padding:10px; font-size:16px; resize:none; }
 button { background:#000; color:#00ffcc; border:1px solid #00ffcc; padding:8px 12px; margin:4px; cursor:pointer; }
 button:hover { background:#00ffcc; color:#000; }
 .face { font-size:20px; margin:10px; }
-#linkBox { display:none; margin-top:10px;}
+#linkBox { display:none; margin-top:10px; }
 </style>
 </head>
 <body>
+
 <h1>ARANEAE 2190</h1>
 <div class="subtitle">PUBLISHER 211910<br>17‑10 | 21 | 12 | 25 B00I</div>
 <div class="face" id="face">..!?!£(£;3;3(£..!?!</div>
+
 <textarea id="box" placeholder="TYPE MESSAGE OR PASTE LINK"></textarea><br>
 
 <button id="encodeBtn">ENCODE</button>
@@ -36,82 +38,89 @@ button:hover { background:#00ffcc; color:#000; }
 </div>
 
 <script>
-window.onload = function() {
+window.onload = function(){
   const box = document.getElementById("box");
   const face = document.getElementById("face");
   const linkBox = document.getElementById("linkBox");
-  let decodedLink = "";
+  let decodedLink="";
 
-  // ASCII FACE animation
-  const typingFrames = ["..!?!£(£;0;0(£..!?!","..!?!£(£;^;^£..!?!","..!?!£(£;*;*£..!?!","..!?!£(£;@;@£..!?!"];
-  const idleFrames = ["..!?!£(£;3;3(£..!?!","..!?!£(£;0;0(£..!?!"];
-  let idleIndex = 0;
+  // ASCII face animation
+  const typingFrames=["..!?!£(£;0;0(£..!?!","..!?!£(£;^;^£..!?!","..!?!£(£;*;*£..!?!","..!?!£(£;@;@£..!?!"];
+  const idleFrames=["..!?!£(£;3;3(£..!?!","..!?!£(£;0;0(£..!?!"];
+  let idleIndex=0;
   let typingTimer;
-  const TYPING_DELAY = 1000;
+  const TYPING_DELAY=1000;
 
-  box.addEventListener("input", () => {
-    face.textContent = typingFrames[Math.floor(Math.random()*typingFrames.length)];
+  box.addEventListener("input", ()=>{
+    face.textContent=typingFrames[Math.floor(Math.random()*typingFrames.length)];
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(() => {
-      idleIndex = (idleIndex +1)%idleFrames.length;
-      face.textContent = idleFrames[idleIndex];
-    }, TYPING_DELAY);
+    typingTimer=setTimeout(()=>{
+      idleIndex=(idleIndex+1)%idleFrames.length;
+      face.textContent=idleFrames[idleIndex];
+    },TYPING_DELAY);
   });
 
-  setInterval(() => {
-    if (!document.activeElement.isEqualNode(box)) {
-      idleIndex = (idleIndex+1)%idleFrames.length;
-      face.textContent = idleFrames[idleIndex];
+  setInterval(()=>{
+    if(!document.activeElement.isEqualNode(box)){
+      idleIndex=(idleIndex+1)%idleFrames.length;
+      face.textContent=idleFrames[idleIndex];
     }
-  }, 1200);
+  },1200);
 
   // ENCODE
-  document.getElementById("encodeBtn").onclick = function() {
-    let t = box.value.trim().toUpperCase();
-    let r = "";
-    for (let c of t) {
-      if (c===" ") r+="_|";
-      else if (c>="A" && c<="Z") r+=(c.charCodeAt(0)-64)+"|";
+  document.getElementById("encodeBtn").onclick=function(){
+    let t=box.value.toUpperCase();
+    let r="";
+    for(let c of t){
+      if(c===" ") r+=" ";           // keep space as space
+      else if(c>="A" && c<="Z") r+= (c.charCodeAt(0)-64)+"|"; // A=1| B=2|...
       else r+=c;
     }
-    box.value = r;
+    box.value=r.trim();
     linkBox.style.display="none";
-  };
+  }
 
   // DECODE
-  document.getElementById("decodeBtn").onclick = function() {
-    let input = box.value.trim();
-    let parts = input.split("|");
-    let result = "";
-    for (let part of parts) {
-      if (part==="") continue;
-      if (part==="_") result+=" ";
-      else if (/^\d+$/.test(part)) {
-        let n = Number(part);
-        if (n>=1 && n<=26) result+=String.fromCharCode(n+64);
+  document.getElementById("decodeBtn").onclick=function(){
+    let input=box.value;
+    let parts=input.split("|");
+    let result="";
+    for(let part of parts){
+      if(part==="") continue;
+      // Check if it's a number 1-26
+      if(/^\d+$/.test(part)){
+        let n=Number(part);
+        if(n>=1 && n<=26) result+=String.fromCharCode(n+64);
         else result+=part;
-      } else result+=part;
+      } else {
+        // If part contains spaces or letters/punctuation
+        result+=part;
+      }
     }
-    box.value = result;
+    box.value=result;
 
-    const urlMatch = result.match(/https?:\/\/\S+/);
-    if (urlMatch) { decodedLink = urlMatch[0]; linkBox.style.display="block";}
+    // Detect URL
+    const urlMatch=result.match(/https?:\/\/\S+/);
+    if(urlMatch){ decodedLink=urlMatch[0]; linkBox.style.display="block"; }
     else linkBox.style.display="none";
-  };
+  }
 
   // COPY / PASTE / DELETE
-  document.getElementById("copyBtn").onclick = () => { navigator.clipboard.writeText(box.value); };
-  document.getElementById("pasteBtn").onclick = () => { navigator.clipboard.readText().then(t=>box.value=t); };
-  document.getElementById("deleteBtn").onclick = () => { box.value=""; linkBox.style.display="none"; };
+  document.getElementById("copyBtn").onclick=()=>{navigator.clipboard.writeText(box.value);}
+  document.getElementById("pasteBtn").onclick=async()=>{
+    try{ let t=await navigator.clipboard.readText(); box.value+=t; } 
+    catch(e){ let t=prompt("Paste your text here:",""); if(t) box.value+=t; }
+  }
+  document.getElementById("deleteBtn").onclick=()=>{ box.value=""; linkBox.style.display="none"; }
 
   // SCROLL
-  document.getElementById("scrollUpBtn").onclick = () => { box.scrollTop-=20; };
-  document.getElementById("scrollDownBtn").onclick = () => { box.scrollTop+=20; };
+  document.getElementById("scrollUpBtn").onclick=()=>{ box.scrollTop-=20; }
+  document.getElementById("scrollDownBtn").onclick=()=>{ box.scrollTop+=20; }
 
   // OPEN LINK
-  document.getElementById("openLinkBtn").onclick = () => { window.open(decodedLink,"_blank"); };
+  document.getElementById("openLinkBtn").onclick=()=>{ window.open(decodedLink,"_blank"); }
+
 };
 </script>
-
 </body>
 </html>
