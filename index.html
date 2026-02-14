@@ -9,81 +9,44 @@
 
 <style>
 *{box-sizing:border-box}
-
 body{
   margin:0;
   background:black;
   color:#00ff66;
   font-family:monospace;
 }
-
 canvas{
   position:fixed;
   top:0;left:0;
   z-index:-1;
 }
-
 .container{ padding:15px; }
-
 .header{
   text-align:center;
   border-bottom:1px solid #00ff66;
   padding-bottom:10px;
 }
-.header h1{
-  margin:0;
-  font-size:24px;
-  letter-spacing:3px;
-}
-.header p{
-  margin:4px 0;
-  font-size:14px;
-}
-
-#face{
-  text-align:center;
-  font-size:22px;
-  margin:10px 0;
-}
-
+.header h1{margin:0;font-size:24px;letter-spacing:3px;}
+.header p{margin:4px 0;font-size:14px;}
+#face{text-align:center;font-size:22px;margin:10px 0;}
 textarea{
-  width:100%;
-  height:200px;
-  margin-top:10px;
-  background:#020202;
-  color:#00ff66;
+  width:100%;height:200px;margin-top:10px;
+  background:#020202;color:#00ff66;
   border:1px solid #00ff66;
-  padding:12px;
-  font-size:16px;
-  resize:none;
-  border-radius:6px;
+  padding:12px;font-size:16px;
+  resize:none;border-radius:6px;
 }
-
-.buttons{ margin-top:10px; }
-
+.buttons{margin-top:10px;}
 button{
-  width:100%;
-  background:black;
-  color:#00ff66;
+  width:100%;background:black;color:#00ff66;
   border:1px solid #00ff66;
-  padding:14px;
-  margin-top:8px;
-  font-size:16px;
-  font-weight:bold;
+  padding:14px;margin-top:8px;
+  font-size:16px;font-weight:bold;
   border-radius:6px;
 }
-button:active{
-  background:#00ff66;
-  color:black;
-}
-
-input[type=file]{
-  width:100%;
-  margin-top:8px;
-  color:#00ff66;
-}
-
-#imgCanvas{ display:none; }
+button:active{background:#00ff66;color:black;}
+input[type=file]{width:100%;margin-top:8px;color:#00ff66;}
+#imgCanvas{display:none;}
 </style>
 </head>
 
@@ -92,7 +55,6 @@ input[type=file]{
 <canvas id="matrix"></canvas>
 
 <div class="container">
-
   <div class="header">
     <h1>ARANEAE 2190</h1>
     <p>PUBLISHER : <b>#21|#19|#10|</b></p>
@@ -119,7 +81,6 @@ input[type=file]{
     <input type="file" id="imgFile" accept="image/*">
     <button onclick="decodeSelectedImage()">DECODE IMAGE</button>
   </div>
-
 </div>
 
 <canvas id="imgCanvas"></canvas>
@@ -130,16 +91,14 @@ const canvas=document.getElementById("matrix");
 const ctx=canvas.getContext("2d");
 canvas.width=innerWidth;
 canvas.height=innerHeight;
-const chars="01";
 const drops=Array(Math.floor(canvas.width/15)).fill(0);
-
 setInterval(()=>{
   ctx.fillStyle="rgba(0,0,0,0.08)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle="#00ff66";
   ctx.font="15px monospace";
   drops.forEach((y,i)=>{
-    ctx.fillText(chars[Math.random()*2|0],i*15,y*15);
+    ctx.fillText(Math.random()>0.5?"0":"1",i*15,y*15);
     if(y*15>canvas.height && Math.random()>0.975) drops[i]=0;
     drops[i]++;
   });
@@ -147,7 +106,7 @@ setInterval(()=>{
 
 const box=document.getElementById("box");
 
-/* ENCODE 1 — UNCHANGED */
+/* ENCODE 1 — DO NOT TOUCH */
 function encode(){
   let t=box.value.toUpperCase(),o="";
   for(let c of t){
@@ -158,28 +117,23 @@ function encode(){
   box.value=o;
 }
 
-/* 🔥 ENCODE 2 — FINAL NUMERIC SYSTEM */
+/* 🔥 ENCODE 2 — FINAL SYSTEM */
 function encode2(){
   let t=box.value.toUpperCase();
-  let out=[];
+  let out="";
   for(let c of t){
-    if(c===" "){
-      out.push("000");
-    }else if(c>="A" && c<="Z"){
-      out.push(String(c.charCodeAt(0)-64).padStart(2,"0"));
-    }
+    if(c===" ") out+="00";
+    else if(c>="A"&&c<="Z")
+      out+=(c.charCodeAt(0)-64).toString().padStart(2,"0");
   }
-  box.value = out.join("00");
+  box.value=out;
 }
 
-/* 🔓 AUTO DECODE */
+/* AUTO DECODE */
 function decode(){
   let v=box.value.trim();
-  if(/^[0-9\s]+$/.test(v)){
-    box.value = decodeNumeric(v);
-  }else{
-    box.value = smartDecode(v);
-  }
+  if(/^[0-9]+$/.test(v)) box.value=decodeNumeric(v);
+  else box.value=smartDecode(v);
 }
 
 /* OLD SYSTEM DECODE */
@@ -199,32 +153,24 @@ function smartDecode(input){
   return out;
 }
 
-/* 🔥 FINAL NUMERIC DECODE (STRICT 2-DIGIT) */
+/* 🔓 FINAL NUMERIC DECODE */
 function decodeNumeric(input){
-  input = input.replace(/\D/g,""); // remove OCR junk & spaces
+  input=input.replace(/\D/g,"");
   let out="";
-  let i=0;
-
-  while(i<input.length){
-    if(input.slice(i,i+3)==="000"){
-      out+=" ";
-      i+=3;
-    }else{
-      let pair=input.slice(i,i+2);
+  for(let i=0;i<input.length;i+=2){
+    let pair=input.slice(i,i+2);
+    if(pair==="00") out+=" ";
+    else{
       let n=parseInt(pair);
-      if(n>=1 && n<=26){
-        out+=String.fromCharCode(n+64);
-      }
-      i+=2;
+      if(n>=1&&n<=26) out+=String.fromCharCode(n+64);
     }
   }
   return out;
 }
 
-/* IMAGE GENERATOR */
+/* IMAGE */
 const imgCanvas=document.getElementById("imgCanvas");
 const ictx=imgCanvas.getContext("2d");
-
 function generateImage(){
   imgCanvas.width=1200;
   imgCanvas.height=400;
@@ -232,14 +178,11 @@ function generateImage(){
   ictx.fillRect(0,0,imgCanvas.width,imgCanvas.height);
   ictx.fillStyle="white";
   ictx.font="36px monospace";
-
   let y=70;
-  box.value.match(/.{1,35}/g)?.forEach(line=>{
-    ictx.fillText(line,30,y);
-    y+=50;
+  box.value.match(/.{1,35}/g)?.forEach(l=>{
+    ictx.fillText(l,30,y);y+=50;
   });
 }
-
 function downloadImage(){
   const a=document.createElement("a");
   a.href=imgCanvas.toDataURL("image/png");
@@ -247,22 +190,21 @@ function downloadImage(){
   a.click();
 }
 
-/* OCR IMAGE DECODE */
+/* OCR DECODE */
 function decodeSelectedImage(){
   const file=document.getElementById("imgFile").files[0];
   if(!file) return alert("Choose image first");
-
   Tesseract.recognize(file,"eng",{
     tessedit_char_whitelist:"0123456789"
   }).then(({data:{text}})=>{
-    box.value = decodeNumeric(text);
+    box.value=decodeNumeric(text);
   });
 }
 
 /* UTIL */
-function copyText(){ box.select(); document.execCommand("copy"); }
-async function pasteText(){ box.value=await navigator.clipboard.readText(); }
-function clearBox(){ box.value=""; }
+function copyText(){box.select();document.execCommand("copy");}
+async function pasteText(){box.value=await navigator.clipboard.readText();}
+function clearBox(){box.value="";}
 </script>
 
 </body>
