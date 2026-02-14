@@ -3,210 +3,135 @@
 <head>
 <meta charset="UTF-8">
 <title>ARANEAE 2190</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- OCR -->
+<!-- OCR Library -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
 body{
-  background:#050505;
-  color:#00ffcc;
-  font-family:monospace;
-  text-align:center;
-  margin:0;
-  padding:10px;
+    background:#050505;
+    color:#00ffcc;
+    font-family:monospace;
+    padding:15px;
 }
-h1{
-  letter-spacing:4px;
-  text-shadow:0 0 20px #00ffcc;
-}
-.subtitle{
-  font-size:12px;
-  color:#777;
-  margin-bottom:10px;
-}
+h1{text-align:center;}
 textarea{
-  width:92%;
-  height:170px;
-  background:#000;
-  color:#00ffcc;
-  border:1px solid #00ffcc;
-  padding:10px;
-  font-size:16px;
-  resize:none;
+    width:100%;
+    height:200px;
+    background:#0e0e0e;
+    color:#00ffcc;
+    border:1px solid #00ffcc;
+    padding:12px;
+    font-size:16px;
 }
 button{
-  background:#000;
-  color:#00ffcc;
-  border:1px solid #00ffcc;
-  padding:8px 12px;
-  margin:4px;
-  cursor:pointer;
+    background:#00ffcc;
+    color:#000;
+    border:none;
+    padding:10px 14px;
+    margin:4px;
+    font-weight:bold;
+    cursor:pointer;
 }
-button:hover{
-  background:#00ffcc;
-  color:#000;
-}
-.face{
-  font-size:20px;
-  margin:10px;
-}
-#linkBox{display:none;margin-top:10px;}
-#ocrStatus{font-size:12px;color:#777;margin-top:5px;}
+button:hover{background:#00cfa6;}
+input[type=file]{margin-top:8px;}
 </style>
 </head>
 
 <body>
 
 <h1>ARANEAE 2190</h1>
-<div class="subtitle">
-PUBLISHER 211910<br>
-17-10 | 21 | 12 | 25 B00I
-</div>
 
-<div class="face" id="face">..!?!£(£;3;3(£..!?!</div>
+<textarea id="box" placeholder="Type or paste text here..."></textarea>
 
-<textarea id="box" placeholder="TYPE MESSAGE OR PASTE LINK"></textarea><br>
+<br>
 
-<button id="encodeBtn">ENCODE</button>
-<button id="decodeBtn">DECODE</button><br>
+<button onclick="encode()">ENCODE</button>
+<button onclick="decode()">DECODE</button>
+<button onclick="copyText()">COPY</button>
+<button onclick="pasteText()">PASTE</button>
+<button onclick="clearBox()">DELETE</button>
+<br>
+<button onclick="scrollUp()">SCROLL ▲</button>
+<button onclick="scrollDown()">SCROLL ▼</button>
 
-<button id="copyBtn">COPY</button>
-<button id="pasteBtn">PASTE</button>
-<button id="deleteBtn">DELETE</button><br>
-
-<button id="scrollUpBtn">▲</button>
-<button id="scrollDownBtn">▼</button><br>
-
-<input type="file" id="imgInput" accept="image/*">
-<button id="imgDecodeBtn">DECODE FROM IMAGE</button>
-
-<div id="ocrStatus"></div>
-
-<div id="linkBox">
-  <br><button id="openLinkBtn">OPEN LINK</button>
-</div>
+<br><br>
+<b>IMAGE → DECODE</b><br>
+<input type="file" accept="image/*" onchange="decodeImage(this)">
 
 <script>
-window.onload = function(){
-
 const box = document.getElementById("box");
-const face = document.getElementById("face");
-const linkBox = document.getElementById("linkBox");
-const ocrStatus = document.getElementById("ocrStatus");
-let decodedLink = "";
-
-/* FACE ANIMATION */
-const typingFaces=[
- "..!?!£(£;0;0(£..!?!",
- "..!?!£(£;^;^£..!?!",
- "..!?!£(£;*;*£..!?!",
- "..!?!£(£;@;@£..!?!"
-];
-const idleFaces=[
- "..!?!£(£;3;3(£..!?!",
- "..!?!£(£;0;0(£..!?!"
-];
-let idleIndex=0, typingTimer;
-
-box.addEventListener("input",()=>{
- face.textContent=typingFaces[Math.floor(Math.random()*typingFaces.length)];
- clearTimeout(typingTimer);
- typingTimer=setTimeout(()=>{
-  idleIndex=(idleIndex+1)%idleFaces.length;
-  face.textContent=idleFaces[idleIndex];
- },900);
-});
-
-setInterval(()=>{
- if(document.activeElement!==box){
-  idleIndex=(idleIndex+1)%idleFaces.length;
-  face.textContent=idleFaces[idleIndex];
- }
-},1200);
 
 /* ENCODE */
-document.getElementById("encodeBtn").onclick=()=>{
- let t=box.value.toUpperCase();
- let r="";
- for(let c of t){
-  if(c===" ") r+=" ";
-  else if(c>="A"&&c<="Z") r+="#"+(c.charCodeAt(0)-64)+"|";
-  else r+=c;
- }
- box.value=r.trim();
- linkBox.style.display="none";
-};
+function encode(){
+    let t = box.value.toUpperCase();
+    let o = "";
+    for(let c of t){
+        if(c === " ") o += " ";
+        else if(c >= "A" && c <= "Z")
+            o += "#" + (c.charCodeAt(0)-64) + "|";
+        else o += c;
+    }
+    box.value = o;
+}
 
 /* DECODE */
-document.getElementById("decodeBtn").onclick=()=>{
- let result=box.value.replace(/#(\d+)\|?/g,(m,p)=>{
-  let n=Number(p);
-  return (n>=1&&n<=26)?String.fromCharCode(n+64):m;
- });
- box.value=result;
+function decode(){
+    let d = box.value;
+    let o = "";
+    let i = 0;
 
- const url=result.match(/https?:\/\/\S+/);
- if(url){decodedLink=url[0];linkBox.style.display="block";}
- else linkBox.style.display="none";
-};
+    while(i < d.length){
+        if(d[i] === "#"){
+            let j = d.indexOf("|", i);
+            if(j === -1){o += "?"; break;}
+            let n = parseInt(d.slice(i+1,j));
+            if(n>=1 && n<=26) o += String.fromCharCode(n+64);
+            else o += "?";
+            i = j+1;
+        }else{
+            o += d[i];
+            i++;
+        }
+    }
+    box.value = o;
+}
 
 /* COPY */
-document.getElementById("copyBtn").onclick=()=>{
- navigator.clipboard.writeText(box.value);
-};
+function copyText(){
+    box.select();
+    document.execCommand("copy");
+}
 
 /* PASTE */
-document.getElementById("pasteBtn").onclick=async()=>{
- try{
-  const t=await navigator.clipboard.readText();
-  box.value+=t;
- }catch{
-  const t=prompt("Paste text:");
-  if(t) box.value+=t;
- }
-};
+async function pasteText(){
+    box.value = await navigator.clipboard.readText();
+}
 
 /* DELETE */
-document.getElementById("deleteBtn").onclick=()=>{
- box.value="";
- linkBox.style.display="none";
-};
+function clearBox(){
+    box.value = "";
+}
 
 /* SCROLL */
-document.getElementById("scrollUpBtn").onclick=()=>box.scrollTop-=20;
-document.getElementById("scrollDownBtn").onclick=()=>box.scrollTop+=20;
+function scrollUp(){
+    box.scrollTop -= box.clientHeight / 10;
+}
+function scrollDown(){
+    box.scrollTop += box.clientHeight / 10;
+}
 
-/* OPEN LINK */
-document.getElementById("openLinkBtn").onclick=()=>{
- window.open(decodedLink,"_blank");
-};
+/* IMAGE OCR + DECODE */
+function decodeImage(input){
+    const file = input.files[0];
+    if(!file) return;
 
-/* IMAGE OCR DECODE */
-  document.getElementById("decodeBtn").onclick = () => {
-  let text = box.value;
+    Tesseract.recognize(file, 'eng').then(({data:{text}})=>{
+        box.value = text;
+        decode();
+    });
+}
+</script>
 
-  // Decode ONLY strict #number| patterns
-  text = text.replace(/#([1-9]|1[0-9]|2[0-6])\|/g, (match, num) => {
-    return String.fromCharCode(Number(num) + 64);
-  });
-
-  box.value = text;
-
-  // URL detection
-  const urlMatch = text.match(/https?:\/\/\S+/);
-  if (urlMatch) {
-    decodedLink = urlMatch[0];
-    linkBox.style.display = "block";
-  } else {
-    linkBox.style.display = "none";
-  }
-};
-
-  // Remove everything except valid cipher chars
-text = text.replace(/[^#0-9|\sA-Z.\!\[\]]/gi, "");
-
-  text = text.replace(/#([1-9]|1[0-9]|2[0-6])\|/g,
-  (_,n)=>String.fromCharCode(+n+64)
-);
+</body>
+</html>
