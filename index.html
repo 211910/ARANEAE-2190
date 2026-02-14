@@ -184,21 +184,22 @@ document.getElementById("openLinkBtn").onclick=()=>{
 };
 
 /* IMAGE OCR DECODE */
-document.getElementById("imgDecodeBtn").onclick=async()=>{
- const file=document.getElementById("imgInput").files[0];
- if(!file){alert("Upload screenshot first");return;}
- ocrStatus.textContent="Reading image...";
- const res=await Tesseract.recognize(file,"eng",{
-  logger:m=>ocrStatus.textContent="Progress "+Math.round(m.progress*100)+"%"
- });
- box.value=res.data.text.replace(/\s+/g," ").trim();
- document.getElementById("decodeBtn").click();
- ocrStatus.textContent="Decoded from image ✔";
+  document.getElementById("decodeBtn").onclick = () => {
+  let text = box.value;
+
+  // Decode ONLY strict #number| patterns
+  text = text.replace(/#([1-9]|1[0-9]|2[0-6])\|/g, (match, num) => {
+    return String.fromCharCode(Number(num) + 64);
+  });
+
+  box.value = text;
+
+  // URL detection
+  const urlMatch = text.match(/https?:\/\/\S+/);
+  if (urlMatch) {
+    decodedLink = urlMatch[0];
+    linkBox.style.display = "block";
+  } else {
+    linkBox.style.display = "none";
+  }
 };
-
-};
-</script>
-
-</body>
-</html>
-
