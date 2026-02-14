@@ -132,7 +132,7 @@ const canvas=document.getElementById("matrix");
 const ctx=canvas.getContext("2d");
 canvas.width=innerWidth;
 canvas.height=innerHeight;
-const chars="01#|";
+const chars="01";
 const drops=Array(Math.floor(canvas.width/15)).fill(0);
 
 setInterval(()=>{
@@ -149,11 +149,9 @@ setInterval(()=>{
 
 /* FACE */
 const face=document.getElementById("face");
-setInterval(()=>face.textContent="(•_•)",1500);
-
 const box=document.getElementById("box");
 
-/* ENCODE # */
+/* ENCODE # (OLD SYSTEM — UNCHANGED) */
 function encode(){
   let t=box.value.toUpperCase(),o="";
   for(let c of t){
@@ -164,18 +162,35 @@ function encode(){
   box.value=o;
 }
 
-/* ENCODE 2 [ ] */
+/* 🔥 ENCODE 2 — NEW NUMERIC SYSTEM */
 function encode2(){
-  let t=box.value.toUpperCase(),o="";
-  for(let c of t){
-    if(c===" ") o+=" ";
-    else if(c>="A"&&c<="Z") o+="["+(c.charCodeAt(0)-64)+"]";
-    else o+=c;
+  let t=box.value.toUpperCase();
+  let out="";
+  for(let i=0;i<t.length;i++){
+    let c=t[i];
+    if(c===" "){
+      out+="000";
+    }else if(c>="A" && c<="Z"){
+      out+=(c.charCodeAt(0)-64);
+      if(i<t.length-1 && t[i+1]!==" ") out+="00";
+    }
   }
-  box.value=o;
+  box.value=out;
 }
 
-/* SMART DECODE */
+/* 🔓 DECODE (SUPPORTS BOTH SYSTEMS) */
+function decode(){
+  let v=box.value.trim();
+
+  /* If numeric-only → use system 2 */
+  if(/^[0-9 ]+$/.test(v)){
+    box.value = decodeNumeric(v);
+  }else{
+    box.value = smartDecode(v);
+  }
+}
+
+/* OLD SMART DECODE (# and [ ]) */
 function smartDecode(input){
   let out="",i=0;
   while(i<input.length){
@@ -183,7 +198,7 @@ function smartDecode(input){
       let j=input.indexOf("|",i);
       if(j!=-1){
         let n=parseInt(input.slice(i+1,j));
-        out+=String.fromCharCode(n+64);
+        if(n>=1&&n<=26) out+=String.fromCharCode(n+64);
         i=j+1; continue;
       }
     }
@@ -191,7 +206,7 @@ function smartDecode(input){
       let j=input.indexOf("]",i);
       if(j!=-1){
         let n=parseInt(input.slice(i+1,j));
-        out+=String.fromCharCode(n+64);
+        if(n>=1&&n<=26) out+=String.fromCharCode(n+64);
         i=j+1; continue;
       }
     }
@@ -200,26 +215,40 @@ function smartDecode(input){
   return out;
 }
 
-function decode(){
-  box.value=smartDecode(box.value);
+/* 🔥 NUMERIC DECODE (00 / 000 SYSTEM) */
+function decodeNumeric(input){
+  let words=input.split("000");
+  let out="";
+  words.forEach((w,wi)=>{
+    let letters=w.split("00");
+    letters.forEach(n=>{
+      let num=parseInt(n);
+      if(num>=1 && num<=26){
+        out+=String.fromCharCode(num+64);
+      }
+    });
+    if(wi<words.length-1) out+=" ";
+  });
+  return out;
 }
 
-/* IMAGE GENERATOR */
+/* IMAGE GENERATOR (BLACK BG, WHITE TEXT) */
 const imgCanvas=document.getElementById("imgCanvas");
 const ictx=imgCanvas.getContext("2d");
 
 function generateImage(){
   const text=box.value;
-  imgCanvas.width=1000;
-  imgCanvas.height=300;
+  imgCanvas.width=1200;
+  imgCanvas.height=400;
   ictx.fillStyle="black";
   ictx.fillRect(0,0,imgCanvas.width,imgCanvas.height);
   ictx.fillStyle="white";
-  ictx.font="32px monospace";
-  let y=60;
-  text.match(/.{1,40}/g)?.forEach(line=>{
-    ictx.fillText(line,20,y);
-    y+=40;
+  ictx.font="36px monospace";
+
+  let y=70;
+  text.match(/.{1,35}/g)?.forEach(line=>{
+    ictx.fillText(line,30,y);
+    y+=50;
   });
   alert("Image generated");
 }
@@ -231,13 +260,19 @@ function downloadImage(){
   a.click();
 }
 
-/* OCR IMAGE DECODE */
+/* 🔥 IMAGE OCR DECODE — NUMBERS ONLY */
 function decodeSelectedImage(){
   const file=document.getElementById("imgFile").files[0];
   if(!file) return alert("Choose image first");
-  Tesseract.recognize(file,'eng').then(({data:{text}})=>{
-    text=text.replace(/[^0-9\[\]\s]/g,"");
-    box.value=smartDecode(text);
+
+  face.textContent="(◎_◎)";
+
+  Tesseract.recognize(file,'eng',{
+    tessedit_char_whitelist:"0123456789"
+  }).then(({data:{text}})=>{
+    let cleaned = text.replace(/\D/g,"");
+    box.value = decodeNumeric(cleaned);
+    face.textContent="(⌐■_■)";
   });
 }
 
@@ -246,6 +281,3 @@ function copyText(){ box.select(); document.execCommand("copy"); }
 async function pasteText(){ box.value=await navigator.clipboard.readText(); }
 function clearBox(){ box.value=""; }
 </script>
-
-</body>
-</html>
