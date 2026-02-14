@@ -4,21 +4,67 @@
 <meta charset="UTF-8">
 <title>ARANEAE 2190</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- OCR -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <style>
-body { background:#050505; color:#00ffcc; font-family:monospace; text-align:center; margin:0; padding:10px;}
-h1 { letter-spacing:3px; text-shadow:0 0 15px #00ffcc; }
-.subtitle { font-size:12px; color:#777; margin-bottom:10px; }
-textarea { width:90%; height:160px; background:#000; color:#00ffcc; border:1px solid #00ffcc; padding:10px; font-size:16px; resize:none; }
-button { background:#000; color:#00ffcc; border:1px solid #00ffcc; padding:8px 12px; margin:4px; cursor:pointer; }
-button:hover { background:#00ffcc; color:#000; }
-.face { font-size:20px; margin:10px; }
-#linkBox { display:none; margin-top:10px; }
+body{
+  background:#050505;
+  color:#00ffcc;
+  font-family:monospace;
+  text-align:center;
+  margin:0;
+  padding:10px;
+}
+h1{
+  letter-spacing:4px;
+  text-shadow:0 0 20px #00ffcc;
+}
+.subtitle{
+  font-size:12px;
+  color:#777;
+  margin-bottom:10px;
+}
+textarea{
+  width:92%;
+  height:170px;
+  background:#000;
+  color:#00ffcc;
+  border:1px solid #00ffcc;
+  padding:10px;
+  font-size:16px;
+  resize:none;
+}
+button{
+  background:#000;
+  color:#00ffcc;
+  border:1px solid #00ffcc;
+  padding:8px 12px;
+  margin:4px;
+  cursor:pointer;
+}
+button:hover{
+  background:#00ffcc;
+  color:#000;
+}
+.face{
+  font-size:20px;
+  margin:10px;
+}
+#linkBox{display:none;margin-top:10px;}
+#ocrStatus{font-size:12px;color:#777;margin-top:5px;}
 </style>
 </head>
+
 <body>
 
 <h1>ARANEAE 2190</h1>
-<div class="subtitle">PUBLISHER 211910<br>17‑10 | 21 | 12 | 25 B00I</div>
+<div class="subtitle">
+PUBLISHER 211910<br>
+17-10 | 21 | 12 | 25 B00I
+</div>
+
 <div class="face" id="face">..!?!£(£;3;3(£..!?!</div>
 
 <textarea id="box" placeholder="TYPE MESSAGE OR PASTE LINK"></textarea><br>
@@ -31,88 +77,127 @@ button:hover { background:#00ffcc; color:#000; }
 <button id="deleteBtn">DELETE</button><br>
 
 <button id="scrollUpBtn">▲</button>
-<button id="scrollDownBtn">▼</button>
+<button id="scrollDownBtn">▼</button><br>
+
+<input type="file" id="imgInput" accept="image/*">
+<button id="imgDecodeBtn">DECODE FROM IMAGE</button>
+
+<div id="ocrStatus"></div>
 
 <div id="linkBox">
-<br><button id="openLinkBtn">OPEN LINK</button>
+  <br><button id="openLinkBtn">OPEN LINK</button>
 </div>
 
 <script>
 window.onload = function(){
-  const box = document.getElementById("box");
-  const face = document.getElementById("face");
-  const linkBox = document.getElementById("linkBox");
-  let decodedLink="";
 
-  // ASCII face animation
-  const typingFrames=["..!?!£(£;0;0(£..!?!","..!?!£(£;^;^£..!?!","..!?!£(£;*;*£..!?!","..!?!£(£;@;@£..!?!"];
-  const idleFrames=["..!?!£(£;3;3(£..!?!","..!?!£(£;0;0(£..!?!"];
-  let idleIndex=0;
-  let typingTimer;
-  const TYPING_DELAY=1000;
+const box = document.getElementById("box");
+const face = document.getElementById("face");
+const linkBox = document.getElementById("linkBox");
+const ocrStatus = document.getElementById("ocrStatus");
+let decodedLink = "";
 
-  box.addEventListener("input", ()=>{
-    face.textContent=typingFrames[Math.floor(Math.random()*typingFrames.length)];
-    clearTimeout(typingTimer);
-    typingTimer=setTimeout(()=>{
-      idleIndex=(idleIndex+1)%idleFrames.length;
-      face.textContent=idleFrames[idleIndex];
-    },TYPING_DELAY);
-  });
+/* FACE ANIMATION */
+const typingFaces=[
+ "..!?!£(£;0;0(£..!?!",
+ "..!?!£(£;^;^£..!?!",
+ "..!?!£(£;*;*£..!?!",
+ "..!?!£(£;@;@£..!?!"
+];
+const idleFaces=[
+ "..!?!£(£;3;3(£..!?!",
+ "..!?!£(£;0;0(£..!?!"
+];
+let idleIndex=0, typingTimer;
 
-  setInterval(()=>{
-    if(!document.activeElement.isEqualNode(box)){
-      idleIndex=(idleIndex+1)%idleFrames.length;
-      face.textContent=idleFrames[idleIndex];
-    }
-  },1200);
+box.addEventListener("input",()=>{
+ face.textContent=typingFaces[Math.floor(Math.random()*typingFaces.length)];
+ clearTimeout(typingTimer);
+ typingTimer=setTimeout(()=>{
+  idleIndex=(idleIndex+1)%idleFaces.length;
+  face.textContent=idleFaces[idleIndex];
+ },900);
+});
 
-  // ENCODE: letters A-Z to #number|, spaces and numbers untouched
-  document.getElementById("encodeBtn").onclick=function(){
-    let t=box.value.toUpperCase();
-    let r="";
-    for(let c of t){
-      if(c===" ") r+=" ";  // keep space
-      else if(c>="A" && c<="Z") r+="#"+(c.charCodeAt(0)-64)+"|"; // A=1| with # prefix
-      else r+=c;  // numbers/punctuation untouched
-    }
-    box.value=r.trim();
-    linkBox.style.display="none";
-  }
+setInterval(()=>{
+ if(document.activeElement!==box){
+  idleIndex=(idleIndex+1)%idleFaces.length;
+  face.textContent=idleFaces[idleIndex];
+ }
+},1200);
 
-  // DECODE: only #number| are decoded
-  document.getElementById("decodeBtn").onclick=function(){
-    let input=box.value;
-    // match #number followed by optional |
-    let result = input.replace(/#(\d+)\|?/g, function(match, p1){
-      let n = Number(p1);
-      if(n>=1 && n<=26) return String.fromCharCode(n+64);
-      return match;
-    });
-    box.value=result;
+/* ENCODE */
+document.getElementById("encodeBtn").onclick=()=>{
+ let t=box.value.toUpperCase();
+ let r="";
+ for(let c of t){
+  if(c===" ") r+=" ";
+  else if(c>="A"&&c<="Z") r+="#"+(c.charCodeAt(0)-64)+"|";
+  else r+=c;
+ }
+ box.value=r.trim();
+ linkBox.style.display="none";
+};
 
-    // Detect URL
-    const urlMatch=result.match(/https?:\/\/\S+/);
-    if(urlMatch){ decodedLink=urlMatch[0]; linkBox.style.display="block"; }
-    else linkBox.style.display="none";
-  }
+/* DECODE */
+document.getElementById("decodeBtn").onclick=()=>{
+ let result=box.value.replace(/#(\d+)\|?/g,(m,p)=>{
+  let n=Number(p);
+  return (n>=1&&n<=26)?String.fromCharCode(n+64):m;
+ });
+ box.value=result;
 
-  // COPY / PASTE / DELETE
-  document.getElementById("copyBtn").onclick=()=>{navigator.clipboard.writeText(box.value);}
-  document.getElementById("pasteBtn").onclick=async()=>{
-    try{ let t=await navigator.clipboard.readText(); box.value+=t; } 
-    catch(e){ let t=prompt("Paste your text here:",""); if(t) box.value+=t; }
-  }
-  document.getElementById("deleteBtn").onclick=()=>{ box.value=""; linkBox.style.display="none"; }
+ const url=result.match(/https?:\/\/\S+/);
+ if(url){decodedLink=url[0];linkBox.style.display="block";}
+ else linkBox.style.display="none";
+};
 
-  // SCROLL
-  document.getElementById("scrollUpBtn").onclick=()=>{ box.scrollTop-=20; }
-  document.getElementById("scrollDownBtn").onclick=()=>{ box.scrollTop+=20; }
+/* COPY */
+document.getElementById("copyBtn").onclick=()=>{
+ navigator.clipboard.writeText(box.value);
+};
 
-  // OPEN LINK
-  document.getElementById("openLinkBtn").onclick=()=>{ window.open(decodedLink,"_blank"); }
+/* PASTE */
+document.getElementById("pasteBtn").onclick=async()=>{
+ try{
+  const t=await navigator.clipboard.readText();
+  box.value+=t;
+ }catch{
+  const t=prompt("Paste text:");
+  if(t) box.value+=t;
+ }
+};
+
+/* DELETE */
+document.getElementById("deleteBtn").onclick=()=>{
+ box.value="";
+ linkBox.style.display="none";
+};
+
+/* SCROLL */
+document.getElementById("scrollUpBtn").onclick=()=>box.scrollTop-=20;
+document.getElementById("scrollDownBtn").onclick=()=>box.scrollTop+=20;
+
+/* OPEN LINK */
+document.getElementById("openLinkBtn").onclick=()=>{
+ window.open(decodedLink,"_blank");
+};
+
+/* IMAGE OCR DECODE */
+document.getElementById("imgDecodeBtn").onclick=async()=>{
+ const file=document.getElementById("imgInput").files[0];
+ if(!file){alert("Upload screenshot first");return;}
+ ocrStatus.textContent="Reading image...";
+ const res=await Tesseract.recognize(file,"eng",{
+  logger:m=>ocrStatus.textContent="Progress "+Math.round(m.progress*100)+"%"
+ });
+ box.value=res.data.text.replace(/\s+/g," ").trim();
+ document.getElementById("decodeBtn").click();
+ ocrStatus.textContent="Decoded from image ✔";
+};
 
 };
 </script>
+
 </body>
 </html>
