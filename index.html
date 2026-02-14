@@ -83,9 +83,7 @@ input[type=file]{
   color:#00ff66;
 }
 
-#imgCanvas{
-  display:none;
-}
+#imgCanvas{ display:none; }
 </style>
 </head>
 
@@ -107,7 +105,7 @@ input[type=file]{
 
   <div class="buttons">
     <button onclick="encode()">ENCODE (#)</button>
-    <button onclick="encode2()">ENCODE 2 ([ ])</button>
+    <button onclick="encode2()">ENCODE 2 (NUM)</button>
     <button onclick="decode()">DECODE</button>
     <button onclick="generateImage()">GENERATE IMAGE</button>
     <button onclick="downloadImage()">DOWNLOAD IMAGE</button>
@@ -141,17 +139,15 @@ setInterval(()=>{
   ctx.fillStyle="#00ff66";
   ctx.font="15px monospace";
   drops.forEach((y,i)=>{
-    ctx.fillText(chars[Math.random()*chars.length|0],i*15,y*15);
+    ctx.fillText(chars[Math.random()*2|0],i*15,y*15);
     if(y*15>canvas.height && Math.random()>0.975) drops[i]=0;
     drops[i]++;
   });
 },40);
 
-/* FACE */
-const face=document.getElementById("face");
 const box=document.getElementById("box");
 
-/* ENCODE # (OLD SYSTEM — UNCHANGED) */
+/* ENCODE 1 — UNCHANGED */
 function encode(){
   let t=box.value.toUpperCase(),o="";
   for(let c of t){
@@ -162,35 +158,31 @@ function encode(){
   box.value=o;
 }
 
-/* 🔥 ENCODE 2 — NEW NUMERIC SYSTEM */
+/* 🔥 ENCODE 2 — FINAL NUMERIC SYSTEM */
 function encode2(){
   let t=box.value.toUpperCase();
-  let out="";
-  for(let i=0;i<t.length;i++){
-    let c=t[i];
+  let out=[];
+  for(let c of t){
     if(c===" "){
-      out+="000";
+      out.push("000");
     }else if(c>="A" && c<="Z"){
-      out+=(c.charCodeAt(0)-64);
-      if(i<t.length-1 && t[i+1]!==" ") out+="00";
+      out.push(String(c.charCodeAt(0)-64).padStart(2,"0"));
     }
   }
-  box.value=out;
+  box.value = out.join("00");
 }
 
-/* 🔓 DECODE (SUPPORTS BOTH SYSTEMS) */
+/* 🔓 AUTO DECODE */
 function decode(){
   let v=box.value.trim();
-
-  /* If numeric-only → use system 2 */
-  if(/^[0-9 ]+$/.test(v)){
+  if(/^[0-9\s]+$/.test(v)){
     box.value = decodeNumeric(v);
   }else{
     box.value = smartDecode(v);
   }
 }
 
-/* OLD SMART DECODE (# and [ ]) */
+/* OLD SYSTEM DECODE */
 function smartDecode(input){
   let out="",i=0;
   while(i<input.length){
@@ -202,42 +194,38 @@ function smartDecode(input){
         i=j+1; continue;
       }
     }
-    if(input[i]=="["){
-      let j=input.indexOf("]",i);
-      if(j!=-1){
-        let n=parseInt(input.slice(i+1,j));
-        if(n>=1&&n<=26) out+=String.fromCharCode(n+64);
-        i=j+1; continue;
-      }
-    }
     out+=input[i]; i++;
   }
   return out;
 }
 
-/* 🔥 NUMERIC DECODE (00 / 000 SYSTEM) */
+/* 🔥 FINAL NUMERIC DECODE (STRICT 2-DIGIT) */
 function decodeNumeric(input){
-  let words=input.split("000");
+  input = input.replace(/\D/g,""); // remove OCR junk & spaces
   let out="";
-  words.forEach((w,wi)=>{
-    let letters=w.split("00");
-    letters.forEach(n=>{
-      let num=parseInt(n);
-      if(num>=1 && num<=26){
-        out+=String.fromCharCode(num+64);
+  let i=0;
+
+  while(i<input.length){
+    if(input.slice(i,i+3)==="000"){
+      out+=" ";
+      i+=3;
+    }else{
+      let pair=input.slice(i,i+2);
+      let n=parseInt(pair);
+      if(n>=1 && n<=26){
+        out+=String.fromCharCode(n+64);
       }
-    });
-    if(wi<words.length-1) out+=" ";
-  });
+      i+=2;
+    }
+  }
   return out;
 }
 
-/* IMAGE GENERATOR (BLACK BG, WHITE TEXT) */
+/* IMAGE GENERATOR */
 const imgCanvas=document.getElementById("imgCanvas");
 const ictx=imgCanvas.getContext("2d");
 
 function generateImage(){
-  const text=box.value;
   imgCanvas.width=1200;
   imgCanvas.height=400;
   ictx.fillStyle="black";
@@ -246,11 +234,10 @@ function generateImage(){
   ictx.font="36px monospace";
 
   let y=70;
-  text.match(/.{1,35}/g)?.forEach(line=>{
+  box.value.match(/.{1,35}/g)?.forEach(line=>{
     ictx.fillText(line,30,y);
     y+=50;
   });
-  alert("Image generated");
 }
 
 function downloadImage(){
@@ -260,19 +247,15 @@ function downloadImage(){
   a.click();
 }
 
-/* 🔥 IMAGE OCR DECODE — NUMBERS ONLY */
+/* OCR IMAGE DECODE */
 function decodeSelectedImage(){
   const file=document.getElementById("imgFile").files[0];
   if(!file) return alert("Choose image first");
 
-  face.textContent="(◎_◎)";
-
-  Tesseract.recognize(file,'eng',{
+  Tesseract.recognize(file,"eng",{
     tessedit_char_whitelist:"0123456789"
   }).then(({data:{text}})=>{
-    let cleaned = text.replace(/\D/g,"");
-    box.value = decodeNumeric(cleaned);
-    face.textContent="(⌐■_■)";
+    box.value = decodeNumeric(text);
   });
 }
 
@@ -281,3 +264,6 @@ function copyText(){ box.select(); document.execCommand("copy"); }
 async function pasteText(){ box.value=await navigator.clipboard.readText(); }
 function clearBox(){ box.value=""; }
 </script>
+
+</body>
+</html>
