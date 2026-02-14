@@ -17,19 +17,14 @@ body{
   font-family:monospace;
 }
 
-/* MATRIX BACKGROUND */
 canvas{
   position:fixed;
   top:0;left:0;
   z-index:-1;
 }
 
-/* CONTAINER */
-.container{
-  padding:15px;
-}
+.container{ padding:15px; }
 
-/* HEADER */
 .header{
   text-align:center;
   border-bottom:1px solid #00ff66;
@@ -45,14 +40,12 @@ canvas{
   font-size:14px;
 }
 
-/* ASCII FACE */
 #face{
   text-align:center;
   font-size:22px;
   margin:10px 0;
 }
 
-/* TEXTAREA */
 textarea{
   width:100%;
   height:200px;
@@ -66,10 +59,8 @@ textarea{
   border-radius:6px;
 }
 
-/* BUTTONS */
-.buttons{
-  margin-top:10px;
-}
+.buttons{ margin-top:10px; }
+
 button{
   width:100%;
   background:black;
@@ -86,7 +77,6 @@ button:active{
   color:black;
 }
 
-/* FILE */
 input[type=file]{
   width:100%;
   margin-top:8px;
@@ -130,7 +120,7 @@ input[type=file]{
 </div>
 
 <script>
-/* MATRIX EFFECT */
+/* MATRIX */
 const canvas = document.getElementById("matrix");
 const ctx = canvas.getContext("2d");
 canvas.width = innerWidth;
@@ -139,7 +129,7 @@ canvas.height = innerHeight;
 const chars = "01#|";
 const drops = Array(Math.floor(canvas.width/15)).fill(0);
 
-function matrix(){
+setInterval(()=>{
   ctx.fillStyle="rgba(0,0,0,0.08)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle="#00ff66";
@@ -150,69 +140,85 @@ function matrix(){
     if(y*15 > canvas.height && Math.random()>0.975) drops[i]=0;
     drops[i]++;
   });
-}
-setInterval(matrix,40);
+},40);
 
 /* ASCII FACE */
 const face = document.getElementById("face");
-const facesIdle = ["(•_•)","(•o•)","(•_•)"];
+const faces = ["(•_•)","(•o•)","(⌐■_■)","(⚆_⚆)","(◎_◎)"];
 let fi=0;
-setInterval(()=>{
-  face.textContent = facesIdle[fi++ % facesIdle.length];
-},1400);
+setInterval(()=> face.textContent = faces[fi++%faces.length],1500);
 
-/* CORE */
 const box = document.getElementById("box");
-
-box.addEventListener("input",()=>{
-  face.textContent="(⚆o⚆)";
-});
+box.addEventListener("input",()=> face.textContent="(⚆o⚆)");
 
 /* ENCODE */
 function encode(){
-  face.textContent="(⌐■_■)";
   let t = box.value.toUpperCase();
   let o = "";
   for(let c of t){
     if(c===" ") o+=" ";
-    else if(c>="A" && c<="Z") o+="#"+(c.charCodeAt(0)-64)+"|";
+    else if(c>="A"&&c<="Z") o+="#"+(c.charCodeAt(0)-64)+"|";
     else o+=c;
   }
   box.value=o;
 }
 
-/* DECODE */
+/* SMART DECODE CORE */
+function smartDecode(input, mode){
+  let out="", i=0;
+
+  while(i<input.length){
+
+    if(mode==="chat" && input[i]==="#"){
+      let j=input.indexOf("|",i);
+      if(j!==-1){
+        let n=parseInt(input.slice(i+1,j));
+        out+=(n>=1&&n<=26)?String.fromCharCode(n+64):"?";
+        i=j+1; continue;
+      }
+    }
+
+    if(input[i]==="["){
+      let j=input.indexOf("]",i);
+      if(j!==-1){
+        let n=parseInt(input.slice(i+1,j));
+        out+=(n>=1&&n<=26)?String.fromCharCode(n+64):"?";
+        i=j+1; continue;
+      }
+    }
+
+    out+=input[i]; i++;
+  }
+  return out;
+}
+
+/* CHAT DECODE */
 function decode(){
   face.textContent="(⚆_⚆)";
-  let d = box.value;
-  let o="",i=0;
-  while(i<d.length){
-    if(d[i]==="#"){
-      let j=d.indexOf("|",i);
-      if(j==-1){o+="?";break;}
-      let n=parseInt(d.slice(i+1,j));
-      o+=(n>=1&&n<=26)?String.fromCharCode(n+64):"?";
-      i=j+1;
-    }else{ o+=d[i]; i++; }
-  }
-  box.value=o;
+  box.value = smartDecode(box.value,"chat");
 }
 
 /* UTIL */
 function copyText(){ box.select(); document.execCommand("copy"); }
 async function pasteText(){ box.value = await navigator.clipboard.readText(); }
 function clearBox(){ box.value=""; }
-function scrollUp(){ box.scrollTop -= 40; }
-function scrollDown(){ box.scrollTop += 40; }
+function scrollUp(){ box.scrollTop-=40; }
+function scrollDown(){ box.scrollTop+=40; }
 
-/* IMAGE OCR BUTTON */
+/* IMAGE OCR DECODE */
 function decodeSelectedImage(){
-  const file = document.getElementById("imgFile").files[0];
+  const file=document.getElementById("imgFile").files[0];
   if(!file) return alert("Choose image first");
+
   face.textContent="(◎_◎)";
+
   Tesseract.recognize(file,'eng').then(({data:{text}})=>{
-    box.value=text;
-    decode();
+    let cleaned=text
+      .replace(/#/g,"")
+      .replace(/\|/g,"")
+      .replace(/[^0-9\[\]\s]/g,"");
+
+    box.value = smartDecode(cleaned,"image");
   });
 }
 </script>
