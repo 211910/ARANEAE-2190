@@ -1,183 +1,219 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ARANEAE 2190</title>
 
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
 <style>
+*{box-sizing:border-box}
+
 body{
-  background:#000;
+  margin:0;
+  background:black;
   color:#00ff66;
   font-family:monospace;
-  margin:0;
 }
 
+/* MATRIX BACKGROUND */
+canvas{
+  position:fixed;
+  top:0;left:0;
+  z-index:-1;
+}
+
+/* CONTAINER */
 .container{
-  padding:12px;
+  padding:15px;
 }
 
-h1{
+/* HEADER */
+.header{
   text-align:center;
+  border-bottom:1px solid #00ff66;
+  padding-bottom:10px;
+}
+.header h1{
+  margin:0;
+  font-size:24px;
+  letter-spacing:3px;
+}
+.header p{
   margin:4px 0;
-  font-size:22px;
-}
-
-.sub{
-  text-align:center;
   font-size:14px;
-  opacity:0.9;
 }
 
+/* ASCII FACE */
 #face{
   text-align:center;
   font-size:22px;
   margin:10px 0;
 }
 
+/* TEXTAREA */
 textarea{
   width:100%;
-  height:140px;
+  height:200px;
+  margin-top:10px;
   background:#020202;
   color:#00ff66;
   border:1px solid #00ff66;
   padding:12px;
   font-size:16px;
+  resize:none;
   border-radius:6px;
 }
 
+/* BUTTONS */
+.buttons{
+  margin-top:10px;
+}
 button{
   width:100%;
+  background:black;
+  color:#00ff66;
+  border:1px solid #00ff66;
   padding:14px;
   margin-top:8px;
   font-size:16px;
   font-weight:bold;
-  background:#000;
-  color:#00ff66;
-  border:1px solid #00ff66;
   border-radius:6px;
 }
-
 button:active{
   background:#00ff66;
-  color:#000;
+  color:black;
 }
 
-#chat{
-  margin-top:12px;
-  height:220px;
-  overflow-y:auto;
-  border:1px solid #00ff66;
-  padding:8px;
-  border-radius:6px;
-}
-
-.msg{
-  margin-bottom:6px;
-  word-wrap:break-word;
+/* FILE */
+input[type=file]{
+  width:100%;
+  margin-top:8px;
+  color:#00ff66;
 }
 </style>
 </head>
 
 <body>
+
+<canvas id="matrix"></canvas>
+
 <div class="container">
 
-<h1>ARANEAE 2190</h1>
-<div class="sub">PUBLISHER : #21|#19|#10|</div>
+  <div class="header">
+    <h1>ARANEAE 2190</h1>
+    <p>PUBLISHER : <b>#21|#19|#10|</b></p>
+    <p>DARK COMMUNICATION INTERFACE</p>
+  </div>
 
-<div id="face">(•_•)</div>
+  <div id="face">(•_•)</div>
 
-<textarea id="input" placeholder="Type message here..."></textarea>
+  <textarea id="box" placeholder="TYPE MESSAGE..."></textarea>
 
-<button onclick="sendMsg()">SEND (ENCODED)</button>
-<button onclick="decodeInput()">DECODE BOX</button>
-<button onclick="clearInput()">CLEAR</button>
+  <div class="buttons">
+    <button onclick="encode()">ENCODE</button>
+    <button onclick="decode()">DECODE</button>
+    <button onclick="copyText()">COPY</button>
+    <button onclick="pasteText()">PASTE</button>
+    <button onclick="clearBox()">DELETE</button>
+    <button onclick="scrollUp()">SCROLL ▲</button>
+    <button onclick="scrollDown()">SCROLL ▼</button>
+  </div>
 
-<div id="chat"></div>
+  <div style="margin-top:12px">
+    <b>IMAGE → DECODE</b>
+    <input type="file" id="imgFile" accept="image/*">
+    <button onclick="decodeSelectedImage()">DECODE IMAGE</button>
+  </div>
 
 </div>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
-/* 🔐 FIREBASE CONFIG (PASTE YOURS) */
-const firebaseConfig = {
-  apiKey: "PASTE",
-  authDomain: "PASTE",
-  databaseURL: "PASTE",
-  projectId: "PASTE"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database().ref("araneae_chat");
+/* MATRIX EFFECT */
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+const chars = "01#|";
+const drops = Array(Math.floor(canvas.width/15)).fill(0);
+
+function matrix(){
+  ctx.fillStyle="rgba(0,0,0,0.08)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#00ff66";
+  ctx.font="15px monospace";
+
+  drops.forEach((y,i)=>{
+    ctx.fillText(chars[Math.floor(Math.random()*chars.length)],i*15,y*15);
+    if(y*15 > canvas.height && Math.random()>0.975) drops[i]=0;
+    drops[i]++;
+  });
+}
+setInterval(matrix,40);
 
 /* ASCII FACE */
 const face = document.getElementById("face");
-const faces = ["(•_•)","(•o•)","(⚆_⚆)","(•_•)"];
+const facesIdle = ["(•_•)","(•o•)","(•_•)"];
 let fi=0;
 setInterval(()=>{
-  face.textContent = faces[fi++ % faces.length];
-},1200);
+  face.textContent = facesIdle[fi++ % facesIdle.length];
+},1400);
 
-const input = document.getElementById("input");
-input.addEventListener("input",()=>{
+/* CORE */
+const box = document.getElementById("box");
+
+box.addEventListener("input",()=>{
   face.textContent="(⚆o⚆)";
 });
 
 /* ENCODE */
-function encodeText(t){
-  let o="";
-  for(let c of t.toUpperCase()){
+function encode(){
+  face.textContent="(⌐■_■)";
+  let t = box.value.toUpperCase();
+  let o = "";
+  for(let c of t){
     if(c===" ") o+=" ";
     else if(c>="A" && c<="Z") o+="#"+(c.charCodeAt(0)-64)+"|";
     else o+=c;
   }
-  return o;
+  box.value=o;
 }
 
 /* DECODE */
-function decodeText(d){
+function decode(){
+  face.textContent="(⚆_⚆)";
+  let d = box.value;
   let o="",i=0;
   while(i<d.length){
     if(d[i]==="#"){
       let j=d.indexOf("|",i);
-      if(j==-1) break;
+      if(j==-1){o+="?";break;}
       let n=parseInt(d.slice(i+1,j));
-      o+= (n>=1 && n<=26) ? String.fromCharCode(n+64) : "?";
+      o+=(n>=1&&n<=26)?String.fromCharCode(n+64):"?";
       i=j+1;
-    }else{
-      o+=d[i];
-      i++;
-    }
+    }else{ o+=d[i]; i++; }
   }
-  return o;
+  box.value=o;
 }
 
-/* SEND */
-function sendMsg(){
-  if(!input.value.trim()) return;
-  const encoded = encodeText(input.value);
-  db.push({msg:encoded});
-  input.value="";
-  face.textContent="(•_•)";
-}
+/* UTIL */
+function copyText(){ box.select(); document.execCommand("copy"); }
+async function pasteText(){ box.value = await navigator.clipboard.readText(); }
+function clearBox(){ box.value=""; }
+function scrollUp(){ box.scrollTop -= 40; }
+function scrollDown(){ box.scrollTop += 40; }
 
-/* RECEIVE */
-db.limitToLast(100).on("child_added",snap=>{
-  const div=document.createElement("div");
-  div.className="msg";
-  div.textContent=snap.val().msg;
-  document.getElementById("chat").appendChild(div);
-  document.getElementById("chat").scrollTop = 999999;
-});
-
-/* LOCAL ACTIONS */
-function decodeInput(){
-  input.value = decodeText(input.value);
-}
-function clearInput(){
-  input.value="";
+/* IMAGE OCR BUTTON */
+function decodeSelectedImage(){
+  const file = document.getElementById("imgFile").files[0];
+  if(!file) return alert("Choose image first");
+  face.textContent="(◎_◎)";
+  Tesseract.recognize(file,'eng').then(({data:{text}})=>{
+    box.value=text;
+    decode();
+  });
 }
 </script>
 
