@@ -82,6 +82,10 @@ input[type=file]{
   margin-top:8px;
   color:#00ff66;
 }
+
+#imgCanvas{
+  display:none;
+}
 </style>
 </head>
 
@@ -102,13 +106,14 @@ input[type=file]{
   <textarea id="box" placeholder="TYPE MESSAGE..."></textarea>
 
   <div class="buttons">
-    <button onclick="encode()">ENCODE</button>
+    <button onclick="encode()">ENCODE (#)</button>
+    <button onclick="encode2()">ENCODE 2 ([ ])</button>
     <button onclick="decode()">DECODE</button>
+    <button onclick="generateImage()">GENERATE IMAGE</button>
+    <button onclick="downloadImage()">DOWNLOAD IMAGE</button>
     <button onclick="copyText()">COPY</button>
     <button onclick="pasteText()">PASTE</button>
     <button onclick="clearBox()">DELETE</button>
-    <button onclick="scrollUp()">SCROLL ▲</button>
-    <button onclick="scrollDown()">SCROLL ▼</button>
   </div>
 
   <div style="margin-top:12px">
@@ -119,42 +124,38 @@ input[type=file]{
 
 </div>
 
+<canvas id="imgCanvas"></canvas>
+
 <script>
 /* MATRIX */
-const canvas = document.getElementById("matrix");
-const ctx = canvas.getContext("2d");
-canvas.width = innerWidth;
-canvas.height = innerHeight;
-
-const chars = "01#|";
-const drops = Array(Math.floor(canvas.width/15)).fill(0);
+const canvas=document.getElementById("matrix");
+const ctx=canvas.getContext("2d");
+canvas.width=innerWidth;
+canvas.height=innerHeight;
+const chars="01#|";
+const drops=Array(Math.floor(canvas.width/15)).fill(0);
 
 setInterval(()=>{
   ctx.fillStyle="rgba(0,0,0,0.08)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
   ctx.fillStyle="#00ff66";
   ctx.font="15px monospace";
-
   drops.forEach((y,i)=>{
-    ctx.fillText(chars[Math.floor(Math.random()*chars.length)],i*15,y*15);
-    if(y*15 > canvas.height && Math.random()>0.975) drops[i]=0;
+    ctx.fillText(chars[Math.random()*chars.length|0],i*15,y*15);
+    if(y*15>canvas.height && Math.random()>0.975) drops[i]=0;
     drops[i]++;
   });
 },40);
 
-/* ASCII FACE */
-const face = document.getElementById("face");
-const faces = ["(•_•)","(•o•)","(⌐■_■)","(⚆_⚆)","(◎_◎)"];
-let fi=0;
-setInterval(()=> face.textContent = faces[fi++%faces.length],1500);
+/* FACE */
+const face=document.getElementById("face");
+setInterval(()=>face.textContent="(•_•)",1500);
 
-const box = document.getElementById("box");
-box.addEventListener("input",()=> face.textContent="(⚆o⚆)");
+const box=document.getElementById("box");
 
-/* ENCODE */
+/* ENCODE # */
 function encode(){
-  let t = box.value.toUpperCase();
-  let o = "";
+  let t=box.value.toUpperCase(),o="";
   for(let c of t){
     if(c===" ") o+=" ";
     else if(c>="A"&&c<="Z") o+="#"+(c.charCodeAt(0)-64)+"|";
@@ -163,64 +164,87 @@ function encode(){
   box.value=o;
 }
 
-/* SMART DECODE CORE */
-function smartDecode(input, mode){
-  let out="", i=0;
+/* ENCODE 2 [ ] */
+function encode2(){
+  let t=box.value.toUpperCase(),o="";
+  for(let c of t){
+    if(c===" ") o+=" ";
+    else if(c>="A"&&c<="Z") o+="["+(c.charCodeAt(0)-64)+"]";
+    else o+=c;
+  }
+  box.value=o;
+}
 
+/* SMART DECODE */
+function smartDecode(input){
+  let out="",i=0;
   while(i<input.length){
-
-    if(mode==="chat" && input[i]==="#"){
+    if(input[i]==="#"){
       let j=input.indexOf("|",i);
-      if(j!==-1){
+      if(j!=-1){
         let n=parseInt(input.slice(i+1,j));
-        out+=(n>=1&&n<=26)?String.fromCharCode(n+64):"?";
+        out+=String.fromCharCode(n+64);
         i=j+1; continue;
       }
     }
-
-    if(input[i]==="["){
+    if(input[i]=="["){
       let j=input.indexOf("]",i);
-      if(j!==-1){
+      if(j!=-1){
         let n=parseInt(input.slice(i+1,j));
-        out+=(n>=1&&n<=26)?String.fromCharCode(n+64):"?";
+        out+=String.fromCharCode(n+64);
         i=j+1; continue;
       }
     }
-
     out+=input[i]; i++;
   }
   return out;
 }
 
-/* CHAT DECODE */
 function decode(){
-  face.textContent="(⚆_⚆)";
-  box.value = smartDecode(box.value,"chat");
+  box.value=smartDecode(box.value);
+}
+
+/* IMAGE GENERATOR */
+const imgCanvas=document.getElementById("imgCanvas");
+const ictx=imgCanvas.getContext("2d");
+
+function generateImage(){
+  const text=box.value;
+  imgCanvas.width=1000;
+  imgCanvas.height=300;
+  ictx.fillStyle="black";
+  ictx.fillRect(0,0,imgCanvas.width,imgCanvas.height);
+  ictx.fillStyle="white";
+  ictx.font="32px monospace";
+  let y=60;
+  text.match(/.{1,40}/g)?.forEach(line=>{
+    ictx.fillText(line,20,y);
+    y+=40;
+  });
+  alert("Image generated");
+}
+
+function downloadImage(){
+  const a=document.createElement("a");
+  a.href=imgCanvas.toDataURL("image/png");
+  a.download="ARANEAE_2190.png";
+  a.click();
+}
+
+/* OCR IMAGE DECODE */
+function decodeSelectedImage(){
+  const file=document.getElementById("imgFile").files[0];
+  if(!file) return alert("Choose image first");
+  Tesseract.recognize(file,'eng').then(({data:{text}})=>{
+    text=text.replace(/[^0-9\[\]\s]/g,"");
+    box.value=smartDecode(text);
+  });
 }
 
 /* UTIL */
 function copyText(){ box.select(); document.execCommand("copy"); }
-async function pasteText(){ box.value = await navigator.clipboard.readText(); }
+async function pasteText(){ box.value=await navigator.clipboard.readText(); }
 function clearBox(){ box.value=""; }
-function scrollUp(){ box.scrollTop-=40; }
-function scrollDown(){ box.scrollTop+=40; }
-
-/* IMAGE OCR DECODE */
-function decodeSelectedImage(){
-  const file=document.getElementById("imgFile").files[0];
-  if(!file) return alert("Choose image first");
-
-  face.textContent="(◎_◎)";
-
-  Tesseract.recognize(file,'eng').then(({data:{text}})=>{
-    let cleaned=text
-      .replace(/#/g,"")
-      .replace(/\|/g,"")
-      .replace(/[^0-9\[\]\s]/g,"");
-
-    box.value = smartDecode(cleaned,"image");
-  });
-}
 </script>
 
 </body>
