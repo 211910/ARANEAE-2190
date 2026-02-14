@@ -4,132 +4,194 @@
 <meta charset="UTF-8">
 <title>ARANEAE 2190</title>
 
-<!-- OCR Library -->
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
+*{box-sizing:border-box}
+
 body{
-    background:#050505;
-    color:#00ffcc;
-    font-family:monospace;
-    padding:15px;
+  margin:0;
+  background:black;
+  color:#00ff66;
+  font-family:monospace;
+  overflow:hidden;
 }
-h1{text-align:center;}
+
+/* MATRIX BACKGROUND */
+canvas{
+  position:fixed;
+  top:0;left:0;
+  z-index:-1;
+}
+
+/* CONTAINER */
+.container{
+  padding:15px;
+}
+
+/* HEADER */
+.header{
+  text-align:center;
+  border-bottom:1px solid #00ff66;
+  padding-bottom:10px;
+}
+.header h1{
+  margin:0;
+  font-size:26px;
+  letter-spacing:3px;
+}
+.header p{
+  margin:4px 0;
+  font-size:14px;
+}
+
+/* TEXTAREA */
 textarea{
-    width:100%;
-    height:200px;
-    background:#0e0e0e;
-    color:#00ffcc;
-    border:1px solid #00ffcc;
-    padding:12px;
-    font-size:16px;
+  width:100%;
+  height:220px;
+  margin-top:12px;
+  background:#020202;
+  color:#00ff66;
+  border:1px solid #00ff66;
+  padding:12px;
+  font-size:16px;
+  resize:none;
+}
+
+/* BUTTONS */
+.buttons{
+  margin-top:10px;
 }
 button{
-    background:#00ffcc;
-    color:#000;
-    border:none;
-    padding:10px 14px;
-    margin:4px;
-    font-weight:bold;
-    cursor:pointer;
+  background:black;
+  color:#00ff66;
+  border:1px solid #00ff66;
+  padding:8px 12px;
+  margin:4px;
+  font-weight:bold;
+  cursor:pointer;
+  transition:0.2s;
 }
-button:hover{background:#00cfa6;}
-input[type=file]{margin-top:8px;}
+button:hover{
+  background:#00ff66;
+  color:black;
+}
+
+/* FILE */
+input[type=file]{
+  color:#00ff66;
+  margin-top:8px;
+}
 </style>
 </head>
 
 <body>
 
-<h1>ARANEAE 2190</h1>
+<canvas id="matrix"></canvas>
 
-<textarea id="box" placeholder="Type or paste text here..."></textarea>
+<div class="container">
 
-<br>
+  <div class="header">
+    <h1>ARANEAE 2190</h1>
+    <p>PUBLISHER : <b>#21|#19|#10|</b></p>
+    <p>DARK COMMUNICATION INTERFACE</p>
+  </div>
 
-<button onclick="encode()">ENCODE</button>
-<button onclick="decode()">DECODE</button>
-<button onclick="copyText()">COPY</button>
-<button onclick="pasteText()">PASTE</button>
-<button onclick="clearBox()">DELETE</button>
-<br>
-<button onclick="scrollUp()">SCROLL ▲</button>
-<button onclick="scrollDown()">SCROLL ▼</button>
+  <textarea id="box" placeholder="TYPE MESSAGE..."></textarea>
 
-<br><br>
-<b>IMAGE → DECODE</b><br>
-<input type="file" accept="image/*" onchange="decodeImage(this)">
+  <div class="buttons">
+    <button onclick="encode()">ENCODE</button>
+    <button onclick="decode()">DECODE</button>
+    <button onclick="copyText()">COPY</button>
+    <button onclick="pasteText()">PASTE</button>
+    <button onclick="clearBox()">DELETE</button><br>
+    <button onclick="scrollUp()">SCROLL ▲</button>
+    <button onclick="scrollDown()">SCROLL ▼</button>
+  </div>
+
+  <div>
+    <b>IMAGE → DECODE</b><br>
+    <input type="file" accept="image/*" onchange="decodeImage(this)">
+  </div>
+
+</div>
 
 <script>
+/* MATRIX EFFECT */
+const canvas = document.getElementById("matrix");
+const ctx = canvas.getContext("2d");
+canvas.width = innerWidth;
+canvas.height = innerHeight;
+
+const chars = "01#|";
+const drops = Array(Math.floor(canvas.width/15)).fill(0);
+
+function matrix(){
+  ctx.fillStyle="rgba(0,0,0,0.08)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#00ff66";
+  ctx.font="15px monospace";
+
+  drops.forEach((y,i)=>{
+    const text = chars[Math.floor(Math.random()*chars.length)];
+    ctx.fillText(text,i*15,y*15);
+    if(y*15 > canvas.height && Math.random()>0.975) drops[i]=0;
+    drops[i]++;
+  });
+}
+setInterval(matrix,40);
+
+/* CORE LOGIC */
 const box = document.getElementById("box");
 
-/* ENCODE */
 function encode(){
-    let t = box.value.toUpperCase();
-    let o = "";
-    for(let c of t){
-        if(c === " ") o += " ";
-        else if(c >= "A" && c <= "Z")
-            o += "#" + (c.charCodeAt(0)-64) + "|";
-        else o += c;
-    }
-    box.value = o;
+  let t = box.value.toUpperCase();
+  let o = "";
+  for(let c of t){
+    if(c===" ") o+=" ";
+    else if(c>="A" && c<="Z") o+="#"+(c.charCodeAt(0)-64)+"|";
+    else o+=c;
+  }
+  box.value=o;
 }
 
-/* DECODE */
 function decode(){
-    let d = box.value;
-    let o = "";
-    let i = 0;
-
-    while(i < d.length){
-        if(d[i] === "#"){
-            let j = d.indexOf("|", i);
-            if(j === -1){o += "?"; break;}
-            let n = parseInt(d.slice(i+1,j));
-            if(n>=1 && n<=26) o += String.fromCharCode(n+64);
-            else o += "?";
-            i = j+1;
-        }else{
-            o += d[i];
-            i++;
-        }
-    }
-    box.value = o;
+  let d = box.value;
+  let o="",i=0;
+  while(i<d.length){
+    if(d[i]==="#"){
+      let j=d.indexOf("|",i);
+      if(j==-1){o+="?";break;}
+      let n=parseInt(d.slice(i+1,j));
+      o+=(n>=1&&n<=26)?String.fromCharCode(n+64):"?";
+      i=j+1;
+    }else{ o+=d[i]; i++; }
+  }
+  box.value=o;
 }
 
-/* COPY */
 function copyText(){
-    box.select();
-    document.execCommand("copy");
+  box.select();
+  document.execCommand("copy");
 }
 
-/* PASTE */
 async function pasteText(){
-    box.value = await navigator.clipboard.readText();
+  box.value = await navigator.clipboard.readText();
 }
 
-/* DELETE */
-function clearBox(){
-    box.value = "";
-}
+function clearBox(){ box.value=""; }
 
-/* SCROLL */
-function scrollUp(){
-    box.scrollTop -= box.clientHeight / 10;
-}
-function scrollDown(){
-    box.scrollTop += box.clientHeight / 10;
-}
+function scrollUp(){ box.scrollTop -= 40; }
+function scrollDown(){ box.scrollTop += 40; }
 
-/* IMAGE OCR + DECODE */
+/* IMAGE OCR */
 function decodeImage(input){
-    const file = input.files[0];
-    if(!file) return;
-
-    Tesseract.recognize(file, 'eng').then(({data:{text}})=>{
-        box.value = text;
-        decode();
-    });
+  const f=input.files[0];
+  if(!f) return;
+  Tesseract.recognize(f,'eng').then(({data:{text}})=>{
+    box.value=text;
+    decode();
+  });
 }
 </script>
 
